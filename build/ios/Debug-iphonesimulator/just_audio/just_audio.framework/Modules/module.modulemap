@@ -1,6 +1,0 @@
-framework module just_audio {
-  umbrella header "just_audio-umbrella.h"
-
-  export *
-  module * { export * }
-}
