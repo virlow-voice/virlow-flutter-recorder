@@ -1,0 +1,6 @@
+framework module audio_session {
+  umbrella header "audio_session-umbrella.h"
+
+  export *
+  module * { export * }
+}

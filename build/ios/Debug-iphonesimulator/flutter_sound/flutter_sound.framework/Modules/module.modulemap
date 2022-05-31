@@ -1,0 +1,6 @@
+framework module flutter_sound {
+  umbrella header "flutter_sound-umbrella.h"
+
+  export *
+  module * { export * }
+}
