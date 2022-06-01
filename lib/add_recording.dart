@@ -17,13 +17,11 @@ import 'data/group_names.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_progress_hud/flutter_progress_hud.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
-DateTime now = DateTime.now();
 typedef _Fn = void Function();
 const theSource = AudioSource.microphone;
-
-String recordingName =
-    "${now.year.toString()}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}-${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}";
 
 class AddRecording extends StatefulWidget {
   const AddRecording({Key? key}) : super(key: key);
@@ -34,8 +32,7 @@ class AddRecording extends StatefulWidget {
 class _AddRecordingState extends State<AddRecording>
     with SingleTickerProviderStateMixin {
   final _recordingBox = Hive.box('recordings');
-  TextEditingController controllerRecordingName =
-      TextEditingController(text: recordingName);
+  TextEditingController controllerRecordingName = TextEditingController();
   TextEditingController controllerGroup =
       TextEditingController(text: "Personal");
   final TextEditingController _typeAheadController = TextEditingController();
@@ -43,6 +40,7 @@ class _AddRecordingState extends State<AddRecording>
   final FlutterSoundPlayer? _mPlayer = FlutterSoundPlayer();
   FlutterSoundRecorder? _mRecorder = FlutterSoundRecorder();
   bool _mRecorderIsInited = false;
+  late String virlowUuid;
 
   // Recording Animation
   late AnimationController _animationController;
@@ -56,6 +54,11 @@ class _AddRecordingState extends State<AddRecording>
 
   @override
   void initState() {
+    var uuid = Uuid();
+    setState(() {
+      virlowUuid = uuid.v1();
+    });
+
     openTheRecorder().then((value) {
       setState(() {
         _mRecorderIsInited = true;
@@ -124,7 +127,6 @@ class _AddRecordingState extends State<AddRecording>
     await _mRecorder!.openRecorder();
     if (!await _mRecorder!.isEncoderSupported(_codec) && kIsWeb) {
       _codec = Codec.opusWebM;
-      // _mPath = recordingName;
       if (!await _mRecorder!.isEncoderSupported(_codec) && kIsWeb) {
         _mRecorderIsInited = true;
         return;
@@ -159,8 +161,7 @@ class _AddRecordingState extends State<AddRecording>
     if (!_mRecorder!.isPaused) {
       _mRecorder!
           .startRecorder(
-        toFile:
-            "$appDocPath/${controllerRecordingName.value.text.replaceAll(' ', '')}.wav",
+        toFile: "$appDocPath/$virlowUuid.wav",
         codec: _codec,
         audioSource: theSource,
       )
@@ -188,12 +189,18 @@ class _AddRecordingState extends State<AddRecording>
     });
   }
 
+  String getDateTimeNow() {
+    return DateFormat.yMMMEd().add_jm().format(DateTime.now());
+  }
+
   Future<void> _createItem(String name, String group) async {
     await _mRecorder!.stopRecorder().then((value) {
       setState(() {});
     });
 
     Directory appDocDir = await getApplicationDocumentsDirectory();
+    // String recordingName =
+    // "${now.year.toString()}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}-${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}";
     String appDocPath = appDocDir.path;
     final contents = await rootBundle.loadString(
       'assets/cfg/app_settings.json',
@@ -215,27 +222,28 @@ class _AddRecordingState extends State<AddRecording>
       'custom': 'VIRLOW_RECODER'
     });
 
-    request.files.add(await http.MultipartFile.fromPath("audio",
-        "$appDocPath/${controllerRecordingName.value.text.replaceAll(' ', '')}.wav"));
+    request.files.add(await http.MultipartFile.fromPath(
+        "audio", "$appDocPath/$virlowUuid.wav"));
 
     var streamedResponse = await request.send();
     var response = await http.Response.fromStream(streamedResponse);
     final result = jsonDecode(response.body) as Map<String, dynamic>;
-
     if (response.statusCode == 200) {
       await _recordingBox.add({
+        "id": virlowUuid,
         "name": name,
         "group": group,
         "results_processed": false,
-        "file_location":
-            "${controllerRecordingName.value.text.replaceAll(' ', '')}.wav",
+        "file_location": "$virlowUuid.wav",
         "job_id": result["id"],
         "quill_edit": false,
         "results": {"data": "data"},
         "quill_data": [],
+        "date_time": getDateTimeNow(),
       });
     } else {}
-
+    controllerRecordingName = TextEditingController();
+    // ignore: use_build_context_synchronously
     Navigator.pop(context);
   }
 

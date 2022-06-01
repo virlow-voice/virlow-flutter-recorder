@@ -40,11 +40,13 @@ dependencies:
   hive: ^2.2.1
   hive_flutter: ^1.1.0
   http: ^0.13.4
+  intl: ^0.17.0
   just_audio: ^0.9.21
   modal_bottom_sheet: ^2.0.1
   permission_handler: ^9.2.0
   top_snackbar_flutter: ^1.1.1
   url_launcher: ^6.1.2
+  uuid: ^3.0.6
 
 dev_dependencies:
   flutter_test:

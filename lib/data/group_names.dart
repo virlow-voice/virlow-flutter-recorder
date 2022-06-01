@@ -29,7 +29,7 @@ Future<List<String>> getGroupsNamesHive() async {
 }
 
 class GroupNames {
-  static final List<String> groups = ['Personal', 'School', 'Work', 'Test'];
+  static final List<String> groups = ['Personal', 'School', 'Work'];
 
   static Future<List<String>> getGroups(String query) async {
     List<String> matches = <String>[];
@@ -43,21 +43,6 @@ class GroupNames {
     // Remove duplicates
     final ids = matches.map((e) => e).toSet();
     matches.retainWhere((x) => ids.remove(x));
-    return matches;
-  }
-}
-
-class GroupsService {
-  static final List<String> groups = [
-    'Personal',
-    'School',
-    'Work',
-  ];
-
-  static List<String> getSuggestions(String query) {
-    List<String> matches = <String>[];
-    matches.addAll(groups);
-    matches.retainWhere((s) => s.toLowerCase().contains(query.toLowerCase()));
     return matches;
   }
 }

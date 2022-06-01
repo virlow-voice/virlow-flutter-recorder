@@ -67,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
         "key": key,
         "name": value["name"],
         "group": value["group"],
+        "date_time": value["date_time"],
         "results": value['results'],
         "file_processed": value["file_processed"],
         "results_processed": value["results_processed"]
@@ -135,7 +136,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20.0, vertical: 10.0),
                 leading: const Icon(Icons.audio_file_outlined),
-                title: Text(element['name']),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: Text(element['name']),
+                ),
+                subtitle: Text(element['date_time']),
                 trailing: const Icon(Icons.arrow_forward),
                 onTap: () {
                   Navigator.push(

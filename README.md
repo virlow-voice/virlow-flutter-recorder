@@ -43,6 +43,16 @@ The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https:
 
 
 ## Change Log
+### Bug Fixes
+June 1st, 2022
+Version 1.0.4-beta
+
+* Removed padding when Keyboard is displayed on the __view_recording.dart__ page.
+* Added timestamp to Hive record
+* Added formatted timestamp to ListView in the __main.dart__ page
+* Changed audio file name from user provided name to uuid 
+
+
 ### First commit
 May 31st, 2022
 

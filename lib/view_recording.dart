@@ -24,6 +24,7 @@ Map itemData = {};
 class ViewRecording extends StatefulWidget {
   // ignore: prefer_typing_uninitialized_variables
   var hiveValue;
+  double footerBoxHeight = 20.0;
   ViewRecording({Key? key, this.hiveValue}) : super(key: key);
   @override
   _ViewRecordingState createState() => _ViewRecordingState();
@@ -36,15 +37,6 @@ class _ViewRecordingState extends State<ViewRecording>
       TextEditingController(text: "Recording Name");
   TextEditingController controllerGroup =
       TextEditingController(text: "Group Name");
-  TextEditingController controllerTldr = TextEditingController(
-      text:
-          "Transcribing with Audio Intelligence, which can take up to 5 minutes ...");
-  TextEditingController controllerShortHandNotes = TextEditingController(
-      text:
-          "Transcribing with Audio Intelligence, which can take up to 5 minutes ...");
-  TextEditingController controllerTranscript = TextEditingController(
-      text:
-          "Transcribing with Audio Intelligence, which can take up to 5 minutes ...");
 
   final _player = AudioPlayer();
   final _recordingBox = Hive.box('recordings');
@@ -69,7 +61,9 @@ class _ViewRecordingState extends State<ViewRecording>
     controllerRecordingName.text = item["name"];
     controllerGroup.text = item["group"];
 
-    final doc = Document()..insert(0, 'Your audio file is transcribing...');
+    final doc = Document()
+      ..insert(0,
+          'Our machines are hard at work transcribing your recording. The transcription process might take a few minutes.');
 
     setState(() {
       _controller = QuillController(
@@ -126,20 +120,21 @@ class _ViewRecordingState extends State<ViewRecording>
             {"insert": decodedData["results"]["results"]["transcript"]},
             {"insert": "\n"},
           ];
-
           await _recordingBox.put(key, {
             "name": item["name"],
+            "job_id": item["id"],
             "group": item["group"],
             "results_processed": true,
             "quill_edit": item["quill_edit"],
             "quill_data": json,
             "file_location": item["file_location"],
             "job_id": item["job_id"],
+            "date_time": item["date_time"],
             "results": {"data": decodedData["results"]["results"]}
           });
 
           final doc = Document.fromJson(json);
-
+          WidgetsBinding.instance.removeObserver(this);
           setState(() {
             _controller = QuillController(
                 document: doc,
@@ -204,6 +199,7 @@ class _ViewRecordingState extends State<ViewRecording>
         "file_location": item["file_location"],
         "job_id": item["job_id"],
         "quill_edit": true,
+        "date_time": item["date_time"],
         "results": item["results"],
         "quill_data": json,
       });
@@ -284,6 +280,18 @@ class _ViewRecordingState extends State<ViewRecording>
 
   @override
   Widget build(BuildContext context) {
+    // iPhone Notch for Editor Toolbar
+    if (MediaQuery.of(context).viewInsets.bottom > 0.0) {
+      print('processing');
+      setState(() {
+        widget.footerBoxHeight = 2;
+      });
+    } else {
+      setState(() {
+        widget.footerBoxHeight = 25;
+      });
+    }
+
     if (_controller == null) {
       return const Scaffold(body: Center(child: dart_text.Text('Loading...')));
     }
@@ -326,120 +334,125 @@ class _ViewRecordingState extends State<ViewRecording>
     );
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-          appBar: AppBar(
-            bottom: const TabBar(
-              // controller: tabController,
-              tabs: [
-                Tab(icon: Icon(Icons.play_arrow)),
-                Tab(icon: Icon(Icons.notes_rounded)),
-              ],
-            ),
-            leading: IconButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.arrow_back_ios)),
-            title: const dart_text.Text('View Recording'),
-            actions: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.more_outlined),
-                onPressed: () {
-                  showMaterialModalBottomSheet(
-                    expand: false,
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => Material(
-                        child: SafeArea(
-                      top: false,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          ListTile(
-                              title: const dart_text.Text('Save'),
-                              leading: const Icon(Icons.save_alt),
-                              onTap: () {
-                                var json = jsonEncode(
-                                    _controller?.document.toDelta().toJson());
-                                _saveItem(json);
-                              }),
-                          ListTile(
-                            title: const dart_text.Text('Delete'),
-                            leading: const Icon(Icons.delete),
-                            onTap: () {
-                              showAlertDialog(context);
-                              // Navigator.pop(context);
-                            },
-                          ),
-                        ],
-                      ),
-                    )),
-                  );
-                },
-              )
-            ],
-          ),
-          body: TabBarView(
-            children: <Widget>[
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(
-                    left: 8.0, top: 20.0, right: 8.0, bottom: 50.0),
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: controllerRecordingName,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Recording Name',
-                        // errorText: 'Error message',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: controllerGroup,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Group',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 100,
-                    ),
-                    // Display play/pause button and volume/speed sliders.
-                    ControlButtons(_player),
-                    // Display seek bar. Using StreamBuilder, this widget rebuilds
-                    // each time the position, buffered position or duration changes.
-                    StreamBuilder<PositionData>(
-                      stream: _positionDataStream,
-                      builder: (context, snapshot) {
-                        final positionData = snapshot.data;
-                        return SeekBar(
-                          duration: positionData?.duration ?? Duration.zero,
-                          position: positionData?.position ?? Duration.zero,
-                          bufferedPosition:
-                              positionData?.bufferedPosition ?? Duration.zero,
-                          onChangeEnd: _player.seek,
-                        );
-                      },
-                    ),
+      child: SafeArea(
+          bottom: false,
+          top: false,
+          child: Scaffold(
+              appBar: AppBar(
+                bottom: const TabBar(
+                  // controller: tabController,
+                  tabs: [
+                    Tab(icon: Icon(Icons.play_arrow)),
+                    Tab(icon: Icon(Icons.notes_rounded)),
                   ],
                 ),
-              ),
-              Column(
-                children: [
-                  Expanded(
-                    child: Container(child: quillEditor),
-                  ),
-                  Container(child: toolbar),
-                  const SizedBox(
-                    height: 5,
-                  ),
+                leading: IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.arrow_back_ios)),
+                title: const dart_text.Text('View Recording'),
+                actions: <Widget>[
+                  IconButton(
+                    icon: const Icon(Icons.more_outlined),
+                    onPressed: () {
+                      showMaterialModalBottomSheet(
+                        expand: false,
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => Material(
+                            child: SafeArea(
+                          top: false,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              ListTile(
+                                  title: const dart_text.Text('Save'),
+                                  leading: const Icon(Icons.save_alt),
+                                  onTap: () {
+                                    var json = jsonEncode(_controller?.document
+                                        .toDelta()
+                                        .toJson());
+                                    _saveItem(json);
+                                  }),
+                              ListTile(
+                                title: const dart_text.Text('Delete'),
+                                leading: const Icon(Icons.delete),
+                                onTap: () {
+                                  showAlertDialog(context);
+                                  // Navigator.pop(context);
+                                },
+                              ),
+                            ],
+                          ),
+                        )),
+                      );
+                    },
+                  )
                 ],
-              )
-            ],
-          )),
+              ),
+              body: TabBarView(
+                children: <Widget>[
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                        left: 8.0, top: 20.0, right: 8.0, bottom: 50.0),
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: controllerRecordingName,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Recording Name',
+                            // errorText: 'Error message',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          controller: controllerGroup,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Group',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 100,
+                        ),
+                        // Display play/pause button and volume/speed sliders.
+                        ControlButtons(_player),
+                        // Display seek bar. Using StreamBuilder, this widget rebuilds
+                        // each time the position, buffered position or duration changes.
+                        StreamBuilder<PositionData>(
+                          stream: _positionDataStream,
+                          builder: (context, snapshot) {
+                            final positionData = snapshot.data;
+                            return SeekBar(
+                              duration: positionData?.duration ?? Duration.zero,
+                              position: positionData?.position ?? Duration.zero,
+                              bufferedPosition:
+                                  positionData?.bufferedPosition ??
+                                      Duration.zero,
+                              onChangeEnd: _player.seek,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Expanded(
+                        child: Container(child: quillEditor),
+                      ),
+                      Container(child: toolbar),
+                      SizedBox(
+                        height: widget.footerBoxHeight,
+                      ),
+                    ],
+                  )
+                ],
+              ))),
     );
   }
 
