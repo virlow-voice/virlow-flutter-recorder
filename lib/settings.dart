@@ -39,7 +39,7 @@ class Settings extends StatelessWidget {
               height: 20,
             ),
             const Text(
-              "Version 1.0.4-beta",
+              "Version 1.1.0-beta",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15),
             ),

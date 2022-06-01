@@ -34,6 +34,7 @@ dependencies:
   flutter_linkify: ^5.0.2
   flutter_progress_hud: ^2.0.0
   flutter_quill: ^5.0.3
+  flutter_share: ^2.0.0
   flutter_sound: ^9.2.13
   flutter_typeahead: ^4.0.0
   grouped_list: ^5.1.1

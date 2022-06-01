@@ -17,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:http/http.dart' as http;
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import 'package:flutter_share/flutter_share.dart';
 
 Map itemData = {};
 
@@ -256,6 +257,17 @@ class _ViewRecordingState extends State<ViewRecording>
     // _refreshItems(); // update the UI
   }
 
+  Future<void> shareFile() async {
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String appDocPath = appDocDir.path;
+
+    await FlutterShare.shareFile(
+      title: 'Virlow Recording',
+      text: itemData["file_location"],
+      filePath: appDocPath + "/" + itemData["file_location"],
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
@@ -374,6 +386,12 @@ class _ViewRecordingState extends State<ViewRecording>
                                         .toDelta()
                                         .toJson());
                                     _saveItem(json);
+                                  }),
+                              ListTile(
+                                  title: const dart_text.Text('Share'),
+                                  leading: const Icon(Icons.share),
+                                  onTap: () {
+                                    shareFile();
                                   }),
                               ListTile(
                                 title: const dart_text.Text('Delete'),

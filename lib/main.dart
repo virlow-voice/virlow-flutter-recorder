@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
         ), // standard dark theme
 
         home: const MyHomePage(title: 'Virlow Recorder'),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }
@@ -91,6 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
         accentColor: Colors.white,
         /* dark theme settings */
       ),
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
           title: Text(widget.title),

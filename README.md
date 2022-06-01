@@ -43,6 +43,13 @@ The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https:
 
 
 ## Change Log
+
+### Features
+June 1st, 2022
+Version 1.1.0-beta
+
+* Added the ability to share recordings outside of the application
+
 ### Bug Fixes
 June 1st, 2022
 Version 1.0.4-beta
