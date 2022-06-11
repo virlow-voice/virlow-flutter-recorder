@@ -56,11 +56,13 @@ class _ViewRecordingState extends State<ViewRecording>
     _init();
   }
 
-  Future<Map> _readItem(int key) async {
+  Future<Map> _readItem(String key) async {
+    String? tldrValue;
+    String? notesValue;
     final item = _recordingBox.get(key);
     itemData = item;
-    controllerRecordingName.text = item["name"];
-    controllerGroup.text = item["group"];
+    controllerRecordingName.text = item["recording_name"];
+    controllerGroup.text = item["recording_group"];
 
     final doc = Document()
       ..insert(0,
@@ -71,78 +73,80 @@ class _ViewRecordingState extends State<ViewRecording>
           document: doc, selection: const TextSelection.collapsed(offset: 0));
     });
 
-    if (!item["results_processed"]) {
+    if (!item["ai_processed"]) {
       final contents = await rootBundle.loadString(
         'assets/cfg/app_settings.json',
       );
       final json = jsonDecode(contents);
       final apiKey = json["VIRLOW_API_KEY"];
-      var url = Uri.parse(
-          "https://api.voice.virlow.com/v1-beta/transcript/status?x-api-key=" +
-              apiKey +
-              "&id=" +
-              item["job_id"]);
-      http.Response response = await http.get(url);
+      var headers = {'Content-Type': 'application/json'};
 
-      if (response.statusCode == 200) {
-        String data = response.body;
-        var decodedData = jsonDecode(data);
+      // Get TLDR from Virlow Audio Intelligence
+      var tldrRequest = http.Request(
+          'PUT',
+          Uri.parse(
+              "https://api.voice.virlow.com/v1-beta/ai/tldr?x-api-key=$apiKey"));
 
-        while (decodedData["status"] != "completed") {
-          await Future.delayed(const Duration(seconds: 60));
-          http.Response response = await http.get(url);
-          data = response.body;
-          decodedData = jsonDecode(data);
-        }
+      tldrRequest.body =
+          jsonEncode({"text": "\n\n Tl;dr ${item["quill_data"][9]["insert"]}"});
 
-        if (decodedData["status"] == "completed") {
-          var json = [
-            {
-              "insert": item["name"],
-              "attributes": {"bold": true, "size": "large"},
-            },
-            {"insert": "\n"},
-            {
-              "insert": "\nTL;DR\n",
-              "attributes": {"bold": true},
-            },
-            {"insert": decodedData["results"]["results"]["tldr"]},
-            {"insert": "\n"},
-            {
-              "insert": "\nShort Hand Notes\n",
-              "attributes": {"bold": true},
-            },
-            {"insert": decodedData["results"]["results"]["short_hand_notes"]},
-            {"insert": "\n"},
-            {
-              "insert": "\nTranscript\n",
-              "attributes": {"bold": true},
-            },
-            {"insert": decodedData["results"]["results"]["transcript"]},
-            {"insert": "\n"},
-          ];
-          await _recordingBox.put(key, {
-            "name": item["name"],
-            "job_id": item["id"],
-            "group": item["group"],
-            "results_processed": true,
-            "quill_edit": item["quill_edit"],
-            "quill_data": json,
-            "file_location": item["file_location"],
-            "job_id": item["job_id"],
-            "date_time": item["date_time"],
-            "results": {"data": decodedData["results"]["results"]}
-          });
+      tldrRequest.headers.addAll(headers);
 
-          final doc = Document.fromJson(json);
-          WidgetsBinding.instance.removeObserver(this);
-          setState(() {
-            _controller = QuillController(
-                document: doc,
-                selection: const TextSelection.collapsed(offset: 0));
-          });
-        }
+      http.StreamedResponse tldrResponse = await tldrRequest.send();
+
+      if (tldrResponse.statusCode == 200) {
+        tldrValue = await tldrResponse.stream.bytesToString();
       }
+
+      // Get Short Hand Notes from Virlow Audio Intelligence
+      var notesRequest = http.Request(
+          'PUT',
+          Uri.parse(
+              "https://api.voice.virlow.com/v1-beta/ai/tldr?x-api-key=$apiKey"));
+
+      notesRequest.body = jsonEncode({
+        "text":
+            "Convert my short hand into a first-hand account of the meeting:\n\n ${item["quill_data"][9]["insert"]}"
+      });
+
+      notesRequest.headers.addAll(headers);
+
+      http.StreamedResponse notesResponse = await notesRequest.send();
+
+      if (notesResponse.statusCode == 200) {
+        notesValue = await notesResponse.stream.bytesToString();
+      }
+
+      // Set TLDR Response
+      var decodedTldr = jsonDecode(tldrValue!);
+      item["quill_data"][3]["insert"] =
+          decodedTldr["response"].replaceAll("\n", "");
+
+      // Set Notes Response
+      var decodedNotes = jsonDecode(notesValue!);
+      item["quill_data"][6]["insert"] =
+          decodedNotes["response"].replaceAll("\n", "");
+
+      item["ai_processed"] = true;
+
+      if (item["quill_data"].length == 11) {
+        final doc = Document.fromJson(item["quill_data"]);
+        setState(() {
+          _controller = QuillController(
+              document: doc,
+              selection: const TextSelection.collapsed(offset: 0));
+        });
+      } else {
+        var myJSON = jsonDecode(item["quill_data"]);
+        final doc = Document.fromJson(myJSON);
+        setState(() {
+          _controller = QuillController(
+              document: doc,
+              selection: const TextSelection.collapsed(offset: 0));
+        });
+      }
+
+      await _recordingBox.put(key, item);
     } else {
       if (item["quill_data"].length == 11) {
         final doc = Document.fromJson(item["quill_data"]);
@@ -185,18 +189,20 @@ class _ViewRecordingState extends State<ViewRecording>
     WidgetsBinding.instance.removeObserver(this);
     // Release decoders and buffers back to the operating system making them
     // available for other apps to use.
+    _controller?.dispose();
     _player.dispose();
+
     super.dispose();
   }
 
   Future<void> _saveItem(json) async {
     final item = _recordingBox.get(widget.hiveValue);
     itemData = item;
-    if (item["results_processed"]) {
+    if (item["ai_processed"]) {
       await _recordingBox.put(widget.hiveValue, {
-        "name": item["name"],
-        "group": item["group"],
-        "results_processed": item["results_processed"],
+        "recording_name": item["recording_name"],
+        "recording_group": item["recording_group"],
+        "ai_processed": item["ai_processed"],
         "file_location": item["file_location"],
         "job_id": item["job_id"],
         "quill_edit": true,
@@ -294,7 +300,6 @@ class _ViewRecordingState extends State<ViewRecording>
   Widget build(BuildContext context) {
     // iPhone Notch for Editor Toolbar
     if (MediaQuery.of(context).viewInsets.bottom > 0.0) {
-      print('processing');
       setState(() {
         widget.footerBoxHeight = 2;
       });

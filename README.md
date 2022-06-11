@@ -1,7 +1,6 @@
 # Virlow Flutter Recorder
 
-__Version 1.0.0-beta__
-
+__Version 2.0.0-beta__
 
 The __Virlow Flutter Recorder__ is an open-source Flutter application that can transcribe recorded audio, plus it includes TL;DR and Short Hand Notes for your transcription. It also consists of a rich text editor that allows you to edit the transcription plus add any additional notes you require.
 
@@ -41,34 +40,4 @@ The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https:
 1. Once the emulator is ready, build and run by pressing F5, by selecting Debug ▸ Start Debugging from the menu or by clicking the triangular Play icon in the top right.
 
 
-
 ## Change Log
-
-### Features
-June 1st, 2022
-Version 1.1.0-beta
-
-* Added the ability to share recordings outside of the application
-
-### Bug Fixes
-June 1st, 2022
-Version 1.0.4-beta
-
-* Removed padding when Keyboard is displayed on the __view_recording.dart__ page.
-* Added timestamp to Hive record
-* Added formatted timestamp to ListView in the __main.dart__ page
-* Changed audio file name from user provided name to uuid 
-
-
-### First commit
-May 31st, 2022
-
-This is __version 1.0.2-beta__ of the Virlow Recorder which includes the following features:
-
-* Voice recorder
-* Transcription
-* TL;DR
-* Short Hand Notes
-* Rich Text Editor
-* Locally saved files
-* Group your recordings

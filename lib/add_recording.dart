@@ -1,45 +1,54 @@
+// import 'dart:async';
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:rxdart/rxdart.dart';
 import 'package:flutter/material.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:sound_stream/sound_stream.dart';
 // ignore: depend_on_referenced_packages
-import 'package:flutter_sound_platform_interface/flutter_sound_recorder_platform_interface.dart';
+// import 'package:flutter_sound_platform_interface/flutter_sound_recorder_platform_interface.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:socket_io_client/socket_io_client.dart';
 import 'data/group_names.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_progress_hud/flutter_progress_hud.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+// ignore: implementation_imports
+import 'package:flutter/src/widgets/text.dart' as dart_text;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+// ignore: depend_on_referenced_packages
+import 'package:flutter_sound_platform_interface/flutter_sound_recorder_platform_interface.dart';
+import 'globals.dart';
 
-typedef _Fn = void Function();
-const theSource = AudioSource.microphone;
+Map itemData = {};
+AudioSource theSource = AudioSource.microphone;
 
+// ignore: must_be_immutable
 class AddRecording extends StatefulWidget {
-  const AddRecording({Key? key}) : super(key: key);
+  // ignore: prefer_typing_uninitialized_variables
+  var hiveValue;
+  double footerBoxHeight = 20.0;
+  AddRecording({Key? key, this.hiveValue}) : super(key: key);
   @override
+  // ignore: library_private_types_in_public_api
   _AddRecordingState createState() => _AddRecordingState();
 }
 
 class _AddRecordingState extends State<AddRecording>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final _recordingBox = Hive.box('recordings');
   TextEditingController controllerRecordingName = TextEditingController();
   TextEditingController controllerGroup =
       TextEditingController(text: "Personal");
   final TextEditingController _typeAheadController = TextEditingController();
-  Codec _codec = Codec.pcm16WAV;
-  final FlutterSoundPlayer? _mPlayer = FlutterSoundPlayer();
-  FlutterSoundRecorder? _mRecorder = FlutterSoundRecorder();
-  bool _mRecorderIsInited = false;
+
   late String virlowUuid;
 
   // Recording Animation
@@ -52,17 +61,39 @@ class _AddRecordingState extends State<AddRecording>
   String recorderStatus = "";
   bool recordingStarted = false;
 
+  // Virlow API
+  IO.Socket? socket;
+
+  // flutter_sound
+  final Codec _codec = Codec.pcm16WAV;
+  FlutterSoundRecorder? _mRecorder = FlutterSoundRecorder();
+
+  // sound_stream
+  final RecorderStream _recorder = RecorderStream();
+
+  bool _isRecording = false;
+
+  late StreamSubscription _recorderStatus;
+  StreamSubscription? _audioStream;
+
+  bool isRecordingNameValidate = true;
+
+  QuillController? _controller;
+
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     var uuid = Uuid();
     setState(() {
       virlowUuid = uuid.v1();
     });
 
-    openTheRecorder().then((value) {
-      setState(() {
-        _mRecorderIsInited = true;
-      });
+    _recorderStatus = _recorder.status.listen((status) {
+      if (mounted) {
+        setState(() {
+          _isRecording = status == SoundStreamStatus.Playing;
+        });
+      }
     });
 
     _animationController =
@@ -78,15 +109,36 @@ class _AddRecordingState extends State<AddRecording>
         setState(() {});
       });
 
+    final doc = Document()
+      ..insert(0,
+          'Our AI Models will start working hard to transcribe your recording once you start recording.');
+
+    setState(() {
+      _controller = QuillController(
+          document: doc, selection: const TextSelection.collapsed(offset: 0));
+    });
+
     super.initState();
+
+    _openRecorder();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _animationController.dispose();
+    // _recorder.dispose();
+    _recorderStatus.cancel();
+    _audioStream?.cancel();
     _mRecorder!.closeRecorder();
     _mRecorder = null;
-    _animationController.dispose();
+    _mRecorder?.stopRecorder();
+    socket?.close();
     super.dispose();
+  }
+
+  String getDateTimeNow() {
+    return DateFormat.yMMMEd().add_jm().format(DateTime.now());
   }
 
   void startAnimation() {
@@ -117,21 +169,29 @@ class _AddRecordingState extends State<AddRecording>
       });
   }
 
-  Future<void> openTheRecorder() async {
-    if (!kIsWeb) {
-      var status = await Permission.microphone.request();
-      if (status != PermissionStatus.granted) {
-        throw RecordingPermissionException('Microphone permission not granted');
-      }
+  void pause() async {
+    await _mRecorder!.pauseRecorder().then((value) {
+      setState(() {});
+    });
+
+    _recorder.stop();
+
+    recorderStatus = "Paused";
+  }
+
+  void stopRecorder() async {
+    await _mRecorder?.stopRecorder().then((value) {
+      setState(() {});
+    });
+  }
+
+  Future<void> _openRecorder() async {
+    var status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      throw RecordingPermissionException('Microphone permission not granted');
     }
     await _mRecorder!.openRecorder();
-    if (!await _mRecorder!.isEncoderSupported(_codec) && kIsWeb) {
-      _codec = Codec.opusWebM;
-      if (!await _mRecorder!.isEncoderSupported(_codec) && kIsWeb) {
-        _mRecorderIsInited = true;
-        return;
-      }
-    }
+
     final session = await AudioSession.instance;
     await session.configure(AudioSessionConfiguration(
       avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
@@ -150,281 +210,409 @@ class _AddRecordingState extends State<AddRecording>
       androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       androidWillPauseWhenDucked: true,
     ));
-
-    _mRecorderIsInited = true;
   }
 
   void record() async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String appDocPath = appDocDir.path;
-    recordingStarted = true;
     if (!_mRecorder!.isPaused) {
-      _mRecorder!
-          .startRecorder(
-        toFile: "$appDocPath/$virlowUuid.wav",
-        codec: _codec,
-        audioSource: theSource,
-      )
-          .then((value) {
-        setState(() {});
+      var json = [
+        {
+          "insert": controllerRecordingName.value.text,
+          "attributes": {"bold": true, "size": "large"},
+        },
+        {"insert": "\n"},
+        {
+          "insert": "\nTL;DR\n",
+          "attributes": {"bold": true},
+        },
+        {"insert": "TL;DR will be completed after the recording is complete."},
+        {"insert": "\n"},
+        {
+          "insert": "\nShort Hand Notes\n",
+          "attributes": {"bold": true},
+        },
+        {
+          "insert":
+              "Short Hand Notes will be completed after the recording is complete."
+        },
+        {"insert": "\n"},
+        {
+          "insert": "\nTranscript\n",
+          "attributes": {"bold": true},
+        },
+        {"insert": ""},
+        {"insert": "\n"},
+      ];
+
+      await _recordingBox.put(virlowUuid, {
+        "id": virlowUuid,
+        "recording_name": controllerRecordingName.value.text,
+        "recording_group": controllerRecordingName.value.text,
+        "virlow_ai_processed": false,
+        "file_location": "$virlowUuid.wav",
+        "ai_processed": false,
+        "results": {},
+        "quill_data": json,
+        "date_time": getDateTimeNow(),
       });
+
+      initSocketStream(virlowUuid);
+      _recorder.start();
+
+      Directory appDocDir = await getApplicationDocumentsDirectory();
+      String appDocPath = appDocDir.path;
+      recordingStarted = true;
+      if (!_mRecorder!.isPaused) {
+        _mRecorder!
+            .startRecorder(
+          toFile: "$appDocPath/$virlowUuid.wav",
+          codec: _codec,
+          audioSource: theSource,
+        )
+            .then((value) {
+          setState(() {});
+        });
+      }
     } else {
       _mRecorder!.resumeRecorder().then((value) {
         setState(() {});
       });
+      _recorder.start();
     }
     recorderStatus = "Recording";
   }
 
-  void pause() async {
-    await _mRecorder!.pauseRecorder().then((value) {
-      setState(() {});
-    });
-    recorderStatus = "Paused";
+  Future<Map<String, dynamic>> getHiveItems(key) async {
+    Map<String, dynamic> item = await _recordingBox.get(key);
+    return item;
   }
 
-  void stopRecorder() async {
-    await _mRecorder!.stopRecorder().then((value) {
-      setState(() {});
+  void saveHiveItems(key, json, virlowUuid) async {
+    await _recordingBox.put(virlowUuid, {
+      "id": virlowUuid,
+      "recording_name": controllerRecordingName.value.text,
+      "recording_group": controllerRecordingName.value.text,
+      "virlow_ai_processed": false,
+      "file_location": "$virlowUuid.wav",
+      "ai_processed": false,
+      "results": {},
+      "quill_data": json,
+      "date_time": getDateTimeNow(),
     });
   }
 
-  String getDateTimeNow() {
-    return DateFormat.yMMMEd().add_jm().format(DateTime.now());
+  Future<void> initSocketStream(String key) async {
+    await Future.wait([
+      _recorder.initialize(),
+    ]);
+
+    String apiKey = await getApiKey();
+    socket = IO.io(
+        'https://api.voice.virlow.com/?x-api-key=$apiKey',
+        OptionBuilder().setTransports(['websocket']) // for Flutter or Dart VM
+            .build());
+
+    _audioStream = _recorder.audioStream.listen((data) {
+      socket?.emit("audio_in", data);
+    });
+
+    socket?.on("transcript", (data) async {
+      if (data["is_final"]) {
+        Map<String, dynamic> item = await getHiveItems(key);
+        final quillStart = item["quill_data"].length - 2;
+
+        if (item["quill_data"][quillStart]["insert"] == "") {
+          item["quill_data"][quillStart]["insert"] = data["transcript"];
+        } else {
+          item["quill_data"][quillStart]["insert"] = item["quill_data"]
+                  [quillStart]["insert"] +
+              "" +
+              data["transcript"];
+        }
+        var json = item["quill_data"];
+        final doc = Document.fromJson(json);
+        setState(() {
+          _controller = QuillController(
+              document: doc,
+              selection: const TextSelection.collapsed(offset: 0));
+        });
+        saveHiveItems(key, json, virlowUuid);
+      } else {
+        Map<String, dynamic> item = await getHiveItems(key);
+        final quillStart = item["quill_data"].length - 2;
+        var json = [
+          {
+            "insert": controllerRecordingName.value.text,
+            "attributes": {"bold": true, "size": "large"},
+          },
+          {"insert": "\n"},
+          {
+            "insert": "\nTL;DR\n",
+            "attributes": {"bold": true},
+          },
+          {
+            "insert": "TL;DR will be completed after the recording is complete."
+          },
+          {"insert": "\n"},
+          {
+            "insert": "\nShort Hand Notes\n",
+            "attributes": {"bold": true},
+          },
+          {
+            "insert":
+                "Short Hand Notes will be completed after the recording is complete."
+          },
+          {"insert": "\n"},
+          {
+            "insert": "\nTranscript\n",
+            "attributes": {"bold": true},
+          },
+          {
+            "insert":
+                item["quill_data"][quillStart]["insert"] + data["transcript"]
+          },
+          {"insert": "\n"},
+        ];
+
+        final doc = Document.fromJson(json);
+        setState(() {
+          _controller = QuillController(
+              document: doc,
+              selection: const TextSelection.collapsed(offset: 0));
+        });
+      }
+    });
   }
 
-  Future<void> _createItem(String name, String group) async {
-    await _mRecorder!.stopRecorder().then((value) {
-      setState(() {});
-    });
-
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    // String recordingName =
-    // "${now.year.toString()}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}-${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}";
-    String appDocPath = appDocDir.path;
-    final contents = await rootBundle.loadString(
-      'assets/cfg/app_settings.json',
-    );
-    final json = jsonDecode(contents);
-    final apiKey = json["VIRLOW_API_KEY"];
-    var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://api.voice.virlow.com/v1-beta/transcript?x-api-key=' +
-            apiKey));
-    request.fields.addAll({
-      'dual_channel': 'false',
-      'punctuate': 'true',
-      'webhook_url': '',
-      'speaker_diarization': 'false',
-      'language': 'enUs',
-      'short_hand_notes': 'true',
-      'tldr': 'true',
-      'custom': 'VIRLOW_RECODER'
-    });
-
-    request.files.add(await http.MultipartFile.fromPath(
-        "audio", "$appDocPath/$virlowUuid.wav"));
-
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
-    final result = jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode == 200) {
-      await _recordingBox.add({
-        "id": virlowUuid,
-        "name": name,
-        "group": group,
-        "results_processed": false,
-        "file_location": "$virlowUuid.wav",
-        "job_id": result["id"],
-        "quill_edit": false,
-        "results": {"data": "data"},
-        "quill_data": [],
-        "date_time": getDateTimeNow(),
+  bool validateRecordingName() {
+    if ((controllerRecordingName.value.text.length > 1) &&
+        controllerRecordingName.value.text.isNotEmpty) {
+      setState(() {
+        isRecordingNameValidate = true;
       });
-    } else {}
-    controllerRecordingName = TextEditingController();
-    // ignore: use_build_context_synchronously
-    Navigator.pop(context);
+      return true;
+    } else {
+      setState(() {
+        isRecordingNameValidate = false;
+      });
+      return false;
+    }
   }
 
-  void _save() {
-    _createItem(
-        controllerRecordingName.value.text, _typeAheadController.value.text);
-  }
-
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.arrow_back_ios)),
-          title: const Text('Add Recording'),
-        ),
-        body: ProgressHUD(
-            barrierEnabled: true,
-            barrierColor: Colors.black54,
-            backgroundRadius: const Radius.circular(8.0),
-            padding: const EdgeInsets.all(50.0),
-            backgroundColor: Color.fromARGB(0, 255, 255, 255),
-            borderColor: Color.fromARGB(0, 255, 255, 255),
-            child: Builder(
-              builder: (context) => Padding(
-                padding: const EdgeInsets.only(
-                    left: 8.0, top: 20.0, right: 8.0, bottom: 8.0),
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: controllerRecordingName,
-                      decoration: InputDecoration(
-                        labelText: 'Recording Name',
-                        // errorText: 'Error message',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            controllerRecordingName.clear();
-                          },
-                          icon: const Icon(Icons.clear),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TypeAheadFormField(
-                      hideOnEmpty: true,
-                      textFieldConfiguration: TextFieldConfiguration(
-                        decoration: InputDecoration(
-                          labelText: 'Group Name',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              _typeAheadController.clear();
-                            },
-                            icon: const Icon(Icons.clear),
-                          ),
-                        ),
-                        controller: _typeAheadController,
-                      ),
-                      suggestionsCallback: (pattern) {
-                        return GroupNames.getGroups(pattern);
-                        // GroupsService.getSuggestions(pattern);
-                      },
-                      itemBuilder: (context, String suggestion) {
-                        return ListTile(
-                          title: Text(suggestion),
-                        );
-                      },
-                      transitionBuilder: (context, suggestionsBox, controller) {
-                        return suggestionsBox;
-                      },
-                      onSuggestionSelected: (String suggestion) {
-                        _typeAheadController.text = suggestion;
-                      },
-                      validator: (value) =>
-                          value!.isEmpty ? 'Please select a Group Name' : null,
-                      onSaved: (value) => print(value),
-                    ),
-                    const SizedBox(
-                      height: 130,
-                    ),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: const Color.fromARGB(
-                                          150, 237, 125, 58),
-                                      blurRadius: _animationPause.value,
-                                      spreadRadius: _animationPause.value)
-                                ]),
-                            child: IconButton(
-                              icon: const Icon(Icons.pause),
-                              color: Colors.white,
-                              onPressed: () {
-                                stopAnimation();
-                                startPauseAnimation();
-                                pause();
-                              },
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 30,
-                          ),
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: const Color.fromARGB(
-                                          150, 237, 125, 58),
-                                      blurRadius: _animation.value,
-                                      spreadRadius: _animation.value)
-                                ]),
-                            child: IconButton(
-                              icon: const Icon(Icons.mic),
-                              iconSize: 45,
-                              color: Colors.white,
-                              onPressed: () {
-                                if (_mRecorder!.isRecording) {
-                                  stopAnimation();
-                                  startPauseAnimation();
-                                  pause();
-                                } else {
-                                  startAnimation();
-                                  stopPauseAnimation();
-                                  record();
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 30,
-                          ),
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: Color.fromARGB(130, 237, 125, 58),
-                                      blurRadius: 0,
-                                      spreadRadius: 0)
-                                ]),
-                            child: IconButton(
-                              icon: const Icon(Icons.save_alt),
-                              color: Colors.white,
-                              onPressed: () {
-                                stopAnimation();
-                                final progress = ProgressHUD.of(context);
-                                progress?.show();
-                                _save();
-                              },
-                            ),
-                          ),
-                        ]),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(30.0),
-                        child: Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Text(recorderStatus), //last one
-                        ),
-                      ),
-                    ),
+    // iPhone Notch for Editor Toolbar
+    if (MediaQuery.of(context).viewInsets.bottom > 0.0) {
+      setState(() {
+        widget.footerBoxHeight = 2;
+      });
+    } else {
+      setState(() {
+        widget.footerBoxHeight = 25;
+      });
+    }
+
+    if (_controller == null) {
+      return const Scaffold(body: Center(child: dart_text.Text('Loading...')));
+    }
+
+    var toolbar = QuillToolbar.basic(
+      controller: _controller!,
+      showCameraButton: false,
+      showImageButton: false,
+      showVideoButton: false,
+      showAlignmentButtons: true,
+      showCodeBlock: false,
+      showColorButton: false,
+      showQuote: false,
+      showStrikeThrough: false,
+      showBackgroundColorButton: false,
+      showLink: false,
+      showFontSize: false,
+      showIndent: false,
+      showInlineCode: false,
+    );
+
+    var quillEditor = QuillEditor(
+      controller: _controller!,
+      scrollController: ScrollController(),
+      scrollable: true,
+      autoFocus: false,
+      readOnly: false,
+      placeholder: 'Add content',
+      expands: false,
+      padding: const EdgeInsets.all(10),
+      focusNode: FocusNode(),
+    );
+    return DefaultTabController(
+      length: 2,
+      child: SafeArea(
+          bottom: false,
+          top: false,
+          child: Scaffold(
+              appBar: AppBar(
+                bottom: const TabBar(
+                  // controller: tabController,
+                  tabs: [
+                    Tab(icon: Icon(Icons.mic)),
+                    Tab(icon: Icon(Icons.notes_rounded)),
                   ],
                 ),
+                leading: IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.arrow_back_ios)),
+                title: const dart_text.Text('Add Recording'),
               ),
-            )));
+              body: TabBarView(
+                children: <Widget>[
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                        left: 8.0, top: 20.0, right: 8.0, bottom: 50.0),
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: controllerRecordingName,
+                          validator: (value) => value!.isEmpty
+                              ? 'Please select a Group Name'
+                              : null,
+                          decoration: InputDecoration(
+                            labelText: 'Recording Name',
+                            errorText: !isRecordingNameValidate
+                                ? 'Please enter a Recording Name'
+                                : null,
+                            // errorText: 'Error message',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                controllerRecordingName.clear();
+                              },
+                              icon: const Icon(Icons.clear),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TypeAheadFormField(
+                          hideOnEmpty: true,
+                          textFieldConfiguration: TextFieldConfiguration(
+                            decoration: InputDecoration(
+                              labelText: 'Group Name',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  _typeAheadController.clear();
+                                },
+                                icon: const Icon(Icons.clear),
+                              ),
+                            ),
+                            controller: _typeAheadController,
+                          ),
+                          suggestionsCallback: (pattern) {
+                            return GroupNames.getGroups(pattern);
+                            // GroupsService.getSuggestions(pattern);
+                          },
+                          itemBuilder: (context, String suggestion) {
+                            return ListTile(
+                              title: dart_text.Text(suggestion),
+                            );
+                          },
+                          transitionBuilder:
+                              (context, suggestionsBox, controller) {
+                            return suggestionsBox;
+                          },
+                          onSuggestionSelected: (String suggestion) {
+                            _typeAheadController.text = suggestion;
+                          },
+                          validator: (value) => value!.isEmpty
+                              ? 'Please select a Group Name'
+                              : null,
+                          onSaved: (value) => print(value),
+                        ),
+                        const SizedBox(
+                          height: 100,
+                        ),
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue,
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: const Color.fromARGB(
+                                              150, 237, 125, 58),
+                                          blurRadius: _animationPause.value,
+                                          spreadRadius: _animationPause.value)
+                                    ]),
+                                child: IconButton(
+                                  icon: const Icon(Icons.pause),
+                                  color: Colors.white,
+                                  onPressed: () {
+                                    stopAnimation();
+                                    startPauseAnimation();
+                                    pause();
+                                  },
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 20,
+                              ),
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue,
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: const Color.fromARGB(
+                                              150, 237, 125, 58),
+                                          blurRadius: _animation.value,
+                                          spreadRadius: _animation.value)
+                                    ]),
+                                child: IconButton(
+                                  icon: const Icon(Icons.mic),
+                                  iconSize: 45,
+                                  color: Colors.white,
+                                  onPressed: () {
+                                    print(validateRecordingName());
+                                    if (validateRecordingName()) {
+                                      if (_mRecorder!.isRecording) {
+                                        stopAnimation();
+                                        startPauseAnimation();
+                                        pause();
+                                      } else {
+                                        startAnimation();
+                                        stopPauseAnimation();
+                                        record();
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 75,
+                              ),
+                            ]),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Expanded(
+                        child: Container(child: quillEditor),
+                      ),
+                      Container(child: toolbar),
+                      SizedBox(
+                        height: widget.footerBoxHeight,
+                      ),
+                    ],
+                  )
+                ],
+              ))),
+    );
   }
 }
