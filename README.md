@@ -40,4 +40,4 @@ The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https:
 1. Once the emulator is ready, build and run by pressing F5, by selecting Debug ▸ Start Debugging from the menu or by clicking the triangular Play icon in the top right.
 
 
-## Change Log
+## [Change Log](https://github.com/virlow-voice/virlow-flutter-recorder/blob/main/CHANGELOG.md)
