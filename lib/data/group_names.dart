@@ -21,8 +21,8 @@ Future<List<String>> getGroupsNamesHive() async {
   List<String> groups = <String>[];
 
   for (Map element in result) {
-    if (element["group"].length != 0) {
-      groups.add(element["group"]);
+    if (element["recording_group"].length != 0) {
+      groups.add(element["recording_group"]);
     }
   }
   return groups;

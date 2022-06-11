@@ -66,8 +66,8 @@ class _MyHomePageState extends State<MyHomePage> {
       final value = _recordingBox.get(key);
       return {
         "key": key,
-        "name": value["name"],
-        "group": value["group"],
+        "recording_name": value["recording_name"],
+        "recording_group": value["recording_group"],
         "date_time": value["date_time"],
         "results": value['results'],
         "file_processed": value["file_processed"],
@@ -115,10 +115,10 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: GroupedListView<dynamic, String>(
           elements: _items,
-          groupBy: (element) => element['group'],
+          groupBy: (element) => element['recording_group'],
           groupComparator: (value1, value2) => value2.compareTo(value1),
           itemComparator: (item1, item2) =>
-              item1['name'].compareTo(item2['name']),
+              item1['recording_name'].compareTo(item2['recording_name']),
           order: GroupedListOrder.DESC,
           useStickyGroupSeparators: false,
           groupSeparatorBuilder: (String value) => Padding(
@@ -140,7 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 leading: const Icon(Icons.audio_file_outlined),
                 title: Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
-                  child: Text(element['name']),
+                  child: Text(element['recording_name']),
                 ),
                 subtitle: Text(element['date_time']),
                 trailing: const Icon(Icons.arrow_forward),
@@ -163,7 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
           backgroundColor: Colors.blue,
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AddRecording()),
+            MaterialPageRoute(builder: (context) => AddRecording()),
           ).then((value) => setState(() {
                 _refreshItems();
               })),
