@@ -51,5 +51,3 @@ This is __version 1.0.2-beta__ of the Virlow Recorder which includes the followi
 - Rich Text Editor
 - Locally saved files
 - Group your recordings
-
-[2.0.0-beta]: https://github.com/virlow-voice/virlow-flutter-recorder/commit/905c5f468a94f32d1de98cef9884680d41f84f9a
