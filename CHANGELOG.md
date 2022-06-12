@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.1.1-beta - 2022-06-12
+
+### Bug Fix
+- Fixed - [Bluetooth Recording #2](https://github.com/virlow-voice/virlow-flutter-recorder/issues/2)
+
 ## 2.1.0-beta - 2022-06-11
 
 ### Bug Fix
@@ -46,5 +51,3 @@ This is __version 1.0.2-beta__ of the Virlow Recorder which includes the followi
 - Rich Text Editor
 - Locally saved files
 - Group your recordings
-
-[2.0.0-beta]: https://github.com/virlow-voice/virlow-flutter-recorder/commit/905c5f468a94f32d1de98cef9884680d41f84f9a
