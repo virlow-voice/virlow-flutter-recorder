@@ -45,7 +45,7 @@ class _AddRecordingState extends State<AddRecording>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final _recordingBox = Hive.box('recordings');
   TextEditingController controllerRecordingName = TextEditingController();
-  TextEditingController controllerGroup =
+  TextEditingController controllerGroupName =
       TextEditingController(text: "Personal");
   final TextEditingController _typeAheadController = TextEditingController();
 
@@ -127,7 +127,7 @@ class _AddRecordingState extends State<AddRecording>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
-    // _recorder.dispose();
+    _recorder.stop();
     _recorderStatus.cancel();
     _audioStream?.cancel();
     _mRecorder!.closeRecorder();
@@ -243,10 +243,12 @@ class _AddRecordingState extends State<AddRecording>
         {"insert": "\n"},
       ];
 
+      print(controllerGroupName.value.text);
+
       await _recordingBox.put(virlowUuid, {
         "id": virlowUuid,
         "recording_name": controllerRecordingName.value.text,
-        "recording_group": controllerRecordingName.value.text,
+        "recording_group": _typeAheadController.text,
         "virlow_ai_processed": false,
         "file_location": "$virlowUuid.wav",
         "ai_processed": false,
@@ -290,7 +292,7 @@ class _AddRecordingState extends State<AddRecording>
     await _recordingBox.put(virlowUuid, {
       "id": virlowUuid,
       "recording_name": controllerRecordingName.value.text,
-      "recording_group": controllerRecordingName.value.text,
+      "recording_group": _typeAheadController.text,
       "virlow_ai_processed": false,
       "file_location": "$virlowUuid.wav",
       "ai_processed": false,

@@ -49,10 +49,6 @@
 	<string>Allow users to add image files to their recordings.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>MyApp does not need this permission</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

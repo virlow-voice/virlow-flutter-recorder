@@ -19,6 +19,8 @@ The __Virlow Flutter Recorder__ is an open-source Flutter application that can t
 
 The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https://www.virlow.com) for transcription as well as TL;DR and Short Hand Notes. The Virlow API can automatically convert audio/video files and live audio streams to text with Virlow’s Speech-to-Text APIs. Powered by cutting edge AI models.
 
+## [View the version on the Apple App Store](https://apps.apple.com/app/id1626304262)
+
 ## Getting Started with the OSS
 
 1. Find instructions for setting up your development machine with the Flutter framework on Flutter’s [Get started](https://flutter.dev/docs/get-started/install) page. The specific steps vary by platform
