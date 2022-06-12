@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.1.0-beta - 2022-06-11
+
+### Bug Fix
+- Removed ```await Hive.deleteBoxFromDisk('recordings');``` from main.dart which deleted Hive
+
 ## [2.0.0-beta] - 2022-06-11
 
 We're super excited to announce version `2.0.0-beta`! In this release we have introduced real-time transcription, no more waiting for the transcription results. Using the Virlow Speech-to-Text API Real-Time Streaming Transcription you get your interim results and final results within hundred's of milliseconds.

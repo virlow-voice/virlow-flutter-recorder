@@ -1,6 +1,6 @@
 # Virlow Flutter Recorder
 
-__Version 2.0.0-beta__
+__Version 2.1.0-beta__
 
 The __Virlow Flutter Recorder__ is an open-source Flutter application that can transcribe recorded audio, plus it includes TL;DR and Short Hand Notes for your transcription. It also consists of a rich text editor that allows you to edit the transcription plus add any additional notes you require.
 
@@ -42,4 +42,4 @@ The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https:
 1. Once the emulator is ready, build and run by pressing F5, by selecting Debug ▸ Start Debugging from the menu or by clicking the triangular Play icon in the top right.
 
 
-## Change Log
+## [Change Log](https://github.com/virlow-voice/virlow-flutter-recorder/blob/main/CHANGELOG.md)
