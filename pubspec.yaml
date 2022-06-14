@@ -53,7 +53,10 @@ dependencies:
   sound_stream:
     git:
       url: https://github.com/virlow-voice/flutter-sound-stream
-
+  amplify_flutter: ^0.5.0
+  amplify_auth_cognito: ^0.5.0
+  amplify_authenticator: ^0.1.0
+  amplify_api: ^0.5.1
 
 dev_dependencies:
   flutter_test:

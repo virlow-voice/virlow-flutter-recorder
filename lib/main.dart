@@ -105,7 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const Settings()),
+                  MaterialPageRoute(builder: (context) => Settings()),
                 ).then((value) => setState(() {
                       _refreshItems();
                     }));
@@ -143,7 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Text(element['recording_name']),
                 ),
                 subtitle: Text(element['date_time']),
-                trailing: const Icon(Icons.arrow_forward),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded),
                 onTap: () {
                   Navigator.push(
                     context,
