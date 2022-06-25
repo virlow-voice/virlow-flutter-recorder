@@ -26,6 +26,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 // ignore: depend_on_referenced_packages
 import 'package:flutter_sound_platform_interface/flutter_sound_recorder_platform_interface.dart';
 import 'globals.dart';
+import 'package:unicons/unicons.dart';
 
 Map itemData = {};
 AudioSource theSource = AudioSource.microphone;
@@ -455,8 +456,8 @@ class _AddRecordingState extends State<AddRecording>
                 bottom: const TabBar(
                   // controller: tabController,
                   tabs: [
-                    Tab(icon: Icon(Icons.mic)),
-                    Tab(icon: Icon(Icons.notes_rounded)),
+                    Tab(icon: Icon(UniconsLine.microphone)),
+                    Tab(icon: Icon(UniconsLine.align_left)),
                   ],
                 ),
                 leading: IconButton(

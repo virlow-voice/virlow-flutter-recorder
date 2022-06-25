@@ -18,6 +18,8 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:http/http.dart' as http;
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_share/flutter_share.dart';
+import 'package:unicons/unicons.dart';
+import 'package:unicons/unicons.dart';
 
 Map itemData = {};
 
@@ -359,8 +361,8 @@ class _ViewRecordingState extends State<ViewRecording>
                 bottom: const TabBar(
                   // controller: tabController,
                   tabs: [
-                    Tab(icon: Icon(Icons.play_arrow)),
-                    Tab(icon: Icon(Icons.notes_rounded)),
+                    Tab(icon: Icon(UniconsLine.play)),
+                    Tab(icon: Icon(UniconsLine.align_left)),
                   ],
                 ),
                 leading: IconButton(
@@ -371,7 +373,7 @@ class _ViewRecordingState extends State<ViewRecording>
                 title: const dart_text.Text('View Recording'),
                 actions: <Widget>[
                   IconButton(
-                    icon: const Icon(Icons.more_outlined),
+                    icon: const Icon(UniconsLine.ellipsis_h),
                     onPressed: () {
                       showMaterialModalBottomSheet(
                         expand: false,

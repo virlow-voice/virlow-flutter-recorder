@@ -43,11 +43,3 @@ The __Virlow Flutter Recorder__ leverages the [Virlow Speech-to-Text API](https:
 
 
 ## [Change Log](https://github.com/virlow-voice/virlow-flutter-recorder/blob/main/CHANGELOG.md)
-
-# New Version
-1. Install and confgire AWS Amplify and confiu
-https://docs.amplify.aws/start/getting-started/installation/q/integration/flutter/
-
-2. New app > build app
-3. Configure Conigto
-4. Pull the latest into your source code

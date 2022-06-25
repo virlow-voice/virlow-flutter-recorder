@@ -73,24 +73,24 @@ class _SettingsState extends State<Settings> {
           children: [
             SettingsGroup(
               items: [
-                SettingsItem(
-                  onTap: () {},
-                  icons: Icons.cloud,
-                  iconStyle: IconStyle(
-                    iconsColor: Colors.white,
-                    withBackground: true,
-                    backgroundColor: Colors.red,
-                  ),
-                  title: 'Cloud Sync',
-                  subtitle: "Requires an account",
-                  trailing: Switch.adaptive(
-                    value: false,
-                    onChanged: (value) {},
-                  ),
-                ),
+                // SettingsItem(
+                //   onTap: () {},
+                //   icons: Icons.cloud,
+                //   iconStyle: IconStyle(
+                //     iconsColor: Colors.white,
+                //     withBackground: true,
+                //     backgroundColor: Colors.red,
+                //   ),
+                //   title: 'Cloud Sync',
+                //   subtitle: "Requires an account",
+                //   trailing: Switch.adaptive(
+                //     value: false,
+                //     onChanged: (value) {},
+                //   ),
+                // ),
                 SettingsItem(
                   onTap: () {
-                    _launchUrl("https://recorder.virlow.com");
+                    _launchUrl("https://virlow.com");
                   },
                   icons: Icons.info_rounded,
                   iconStyle: IconStyle(
@@ -101,24 +101,24 @@ class _SettingsState extends State<Settings> {
                 ),
               ],
             ),
-            SettingsGroupSingle(
-              settingsGroupTitle: "Account",
-              items: [
-                SettingsItemSingle(
-                  onTap: () {
-                    getAuthStatus();
-                  },
-                  icons: Icons.exit_to_app_rounded,
-                  title: signedIn ? "Sign Out" : "Sign In",
-                ),
-                SettingsItemSingle(
-                  onTap: () {},
-                  icons: Icons.delete,
-                  title: "Delete account",
-                  titleStyle: const TextStyle(color: Colors.red),
-                ),
-              ],
-            ),
+            // SettingsGroupSingle(
+            //   settingsGroupTitle: "Account",
+            //   items: [
+            //     SettingsItemSingle(
+            //       onTap: () {
+            //         getAuthStatus();
+            //       },
+            //       icons: Icons.exit_to_app_rounded,
+            //       title: signedIn ? "Sign Out" : "Sign In",
+            //     ),
+            //     SettingsItemSingle(
+            //       onTap: () {},
+            //       icons: Icons.delete,
+            //       title: "Delete account",
+            //       titleStyle: const TextStyle(color: Colors.red),
+            //     ),
+            //   ],
+            // ),
             SettingsGroupSingle(
               settingsGroupTitle: "Misc",
               items: [
