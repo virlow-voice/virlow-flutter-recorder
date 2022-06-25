@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:unicons/unicons.dart';
 import 'add_recording.dart';
 import 'view_recording.dart';
 import 'settings.dart';
@@ -105,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const Settings()),
+                  MaterialPageRoute(builder: (context) => Settings()),
                 ).then((value) => setState(() {
                       _refreshItems();
                     }));
@@ -137,13 +138,15 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20.0, vertical: 10.0),
-                leading: const Icon(Icons.audio_file_outlined),
+                leading: const Icon(
+                  UniconsLine.file_edit_alt,
+                ),
                 title: Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: Text(element['recording_name']),
                 ),
                 subtitle: Text(element['date_time']),
-                trailing: const Icon(Icons.arrow_forward),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded),
                 onTap: () {
                   Navigator.push(
                     context,

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.2.0-beta - 2022-06-25
+
+### Minor changes
+
+- Graphical changes to include new icons and a settings page.
+
+- Introducing sync to cloud which will include, available in 2.3.0:
+    - AWS Cognito authentication
+    - DynamoDB for record metadata and transcription
+    - S3 for audio file storage
+
+#### AWS Cognito authentication
+
 ## 2.1.1-beta - 2022-06-12
 
 ### Bug Fix
