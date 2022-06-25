@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## 2.2.0-beta - 2022-06-25
+## [2.2.0-beta] - 2022-06-25
 
 ### Minor changes
 
@@ -65,4 +65,5 @@ This is __version 1.0.2-beta__ of the Virlow Recorder which includes the followi
 - Locally saved files
 - Group your recordings
 
+[2.2.0-beta]: https://github.com/virlow-voice/virlow-flutter-recorder/commit/2be9597f82c1801c527e4c7dc08cab0dfd8bfceb
 [2.0.0-beta]: https://github.com/virlow-voice/virlow-flutter-recorder/commit/905c5f468a94f32d1de98cef9884680d41f84f9a
